@@ -58,18 +58,25 @@ EOF
 
 ## Environment
 
+**Only works on claude.ai web/desktop with code execution enabled.**
+
 | Works | Doesn't work |
 |-------|-------------|
-| claude.ai web with code execution | Claude Code CLI (has native tools) |
-| claude.ai desktop with computer use | API without computer use |
+| claude.ai web (code execution on) | Claude Code — has native file tools, doesn't need this |
+| claude.ai desktop (computer use) | API without computer use |
 
 ## Installation
 
-Save via the **Save Skill** button in Claude Settings, or drop into your skills directory:
+### claude.ai (web)
 
-```bash
-cp -r claude-file-edit-skill/ /mnt/skills/user/file-edit/
-```
+1. Download this repo as a ZIP (`Code → Download ZIP` on GitHub)
+2. Go to **claude.ai → profile icon → Settings → Features → Skills**
+3. Click **Upload** and select the ZIP
+4. Make sure **Code Execution** is enabled under **Settings → Capabilities**
+
+Claude will automatically use the skill whenever you ask it to edit files.
+
+
 
 ## License
 
