@@ -70,9 +70,10 @@ EOF
 ### claude.ai (web)
 
 1. Download this repo as a ZIP (`Code → Download ZIP` on GitHub)
-2. Go to **claude.ai → profile icon → Settings → Features → Skills**
-3. Click **Upload** and select the ZIP
-4. Make sure **Code Execution** is enabled under **Settings → Capabilities**
+2. **Check the ZIP structure** — the skill folder must be at the root, not double-nested. When you unzip it should look like `claude-file-edit-skill/SKILL.md`, not `claude-file-edit-skill/claude-file-edit-skill/SKILL.md`. If it's double-nested, just move the inner folder out before rezipping.
+3. Go to **claude.ai → profile icon → Settings → Features → Skills**
+4. Click **Upload** and select the ZIP
+5. Make sure **Code Execution** is enabled under **Settings → Capabilities**
 
 Claude will automatically use the skill whenever you ask it to edit files.
 
