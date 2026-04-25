@@ -1,57 +1,155 @@
 ---
 name: file-edit
-description: "Use this skill for ANY file editing task in the bash tool environment on claude.ai web. Triggers: inserting a line, replacing a block of code, adding an import, deleting a section, renaming across a file, or any find-and-replace on disk. Also use for multi-file edits, dry-run verification before editing, and safe atomic rewrites. Use this skill instead of rewriting whole files — it saves tokens and is safer. Trigger on phrases like 'add import', 'replace this line', 'remove that block', 'edit the file', 'update the function', 'fix that string'. NOT for Claude Code CLI (has native tools)."
+description: "Use this skill whenever the user asks you to make a code change, edit a file, replace a component, add an import, delete a block, or modify anything in their codebase. Instead of showing the updated file or reprinting code, always output a ready-to-paste python3 heredoc terminal command that the user can copy and run directly in their terminal. The heredoc uses with open() to read the file, replaces the exact old string with the new string, prints success or NOT FOUND, then writes back. Never reprint the whole file. Never show a diff. Just output the pasteable heredoc command."
 license: MIT
 ---
 
-# File Editing via Python Heredoc
+# File Edit Skill
 
-## Overview
+## What this skill does
 
-Precise file edits via inline Python heredocs. Safer and cheaper than rewriting whole files — only the changed lines are ever in context.
+When a user asks for a code change, output a **ready-to-paste terminal command** using a Python heredoc. The user copies it, pastes it into their terminal, and it edits the file directly. No file reprinting, no diffs, no copy-pasting individual code blocks.
 
-**Environment:** claude.ai web with code execution (bash tool)
+## Output format — always use this
 
-## Token-saving principle
+```bash
+python3 << 'EOF'
+with open('PATH/TO/FILE', 'r') as f:
+    content = f.read()
+old = '''EXACT_OLD_STRING'''
+new = '''NEW_STRING'''
+if old in content:
+    content = content.replace(old, new)
+    print("replaced successfully")
+else:
+    print("NOT FOUND")
+with open('PATH/TO/FILE', 'w') as f:
+    f.write(content)
+EOF
+```
 
-Never read a whole file into the response just to change 2 lines. The heredoc runs in bash — the file content never enters Claude's context window. This keeps edits fast and cheap regardless of file size.
+## Rules
 
-## Quick Reference
+1. `old` must be the **exact** string from the file — preserve all whitespace, indentation, and newlines
+2. Always include the `if old in content / else NOT FOUND` guard
+3. Use triple quotes `'''` for old/new strings so multiline code works
+4. Never reprint the whole file
+5. Never show a diff
+6. Never say "here's the updated file" — just give the heredoc
+7. The user will paste and run this in their own terminal
 
-| Task | Script |
-|------|--------|
-| Replace a string/block | `scripts/replace.py` |
-| Insert after a line | `scripts/insert_after.py` |
-| Insert before a line | `scripts/insert_before.py` |
-| Delete a block | `scripts/delete_block.py` |
-| Replace nth occurrence | `scripts/replace_nth.py` |
-| Edit multiple files | `scripts/multi_file.py` |
-| Verify before editing | `scripts/dry_run.py` |
-| Append to end of file | `scripts/append.py` |
+## Patterns
 
-Read the relevant script when you need the heredoc template, then inline it into a bash call. Don't load scripts you don't need.
+### Replace (default)
+Use for any substitution — swapping a component, changing a value, updating a function.
 
-## Core rules
+```bash
+python3 << 'EOF'
+with open('src/pages/Dashboard.tsx', 'r') as f:
+    content = f.read()
+old = '''                      <button
+                        onClick={() => handleCompleteSwap(match, matchIds[i])}
+                        className="mt-3 w-full text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 rounded-xl transition-colors"
+                      >
+                        ✅ I completed my swap in MyUTK
+                      </button>'''
+new = '''                      <CompletedButton
+                        match={match}
+                        matchId={matchIds[i]}
+                        userId={user!.id}
+                        onComplete={handleCompleteSwap}
+                      />'''
+if old in content:
+    content = content.replace(old, new)
+    print("replaced successfully")
+else:
+    print("NOT FOUND")
+with open('src/pages/Dashboard.tsx', 'w') as f:
+    f.write(content)
+EOF
+```
 
-1. Always include the `if old in content / else NOT FOUND` guard
-2. Exact match only — whitespace, indentation, and newlines matter
-3. When `NOT FOUND`, use `dry_run.py` to inspect before retrying
-4. Backup before risky or multi-step edits: `cp file.ext file.ext.bak`
-5. After editing, verify: `grep -n "new string" path/to/file`
+### Insert after anchor
+Use when adding an import, a line, or a block after a specific line.
 
-## When to use which script
+```bash
+python3 << 'EOF'
+with open('src/pages/Dashboard.tsx', 'r') as f:
+    content = f.read()
+anchor = '''import MatchChat from '../components/MatchChat' '''
+insertion = '''
+import CompletedButton from '../components/CompletedButton' '''
+if anchor in content:
+    content = content.replace(anchor, anchor + insertion, 1)
+    print("inserted successfully")
+else:
+    print("NOT FOUND")
+with open('src/pages/Dashboard.tsx', 'w') as f:
+    f.write(content)
+EOF
+```
 
-- **Single targeted change** → `replace.py`
-- **Adding a line/import near an anchor** → `insert_after.py` or `insert_before.py`
-- **Removing dead code** → `delete_block.py`
-- **Same change across many files** → `multi_file.py`
-- **Unsure of exact spacing/content** → `dry_run.py` first, then edit
-- **Adding content at end** → `append.py`
-- **Duplicate strings in file** → `replace_nth.py`
+### Delete a block
+Use when removing dead code, a component, or a section.
 
-## Windows line endings
+```bash
+python3 << 'EOF'
+with open('src/pages/Dashboard.tsx', 'r') as f:
+    content = f.read()
+block = '''                      <button
+                        onClick={() => handleCompleteSwap(match, matchIds[i])}
+                      >
+                        ✅ I completed my swap
+                      </button>'''
+if block in content:
+    content = content.replace(block, '')
+    print("deleted successfully")
+else:
+    print("NOT FOUND")
+with open('src/pages/Dashboard.tsx', 'w') as f:
+    f.write(content)
+EOF
+```
 
-If edits fail on Windows-originated files, add after reading:
-```python
-content = content.replace('\r\n', '\n')
+### Multiple changes to same file
+Chain multiple replacements in one heredoc.
+
+```bash
+python3 << 'EOF'
+with open('src/pages/Dashboard.tsx', 'r') as f:
+    content = f.read()
+
+changes = [
+    ('''old string 1''', '''new string 1'''),
+    ('''old string 2''', '''new string 2'''),
+]
+
+for old, new in changes:
+    if old in content:
+        content = content.replace(old, new)
+        print(f"replaced: {old[:40].strip()}...")
+    else:
+        print(f"NOT FOUND: {old[:40].strip()}...")
+
+with open('src/pages/Dashboard.tsx', 'w') as f:
+    f.write(content)
+EOF
+```
+
+### Debug: NOT FOUND
+If the user says the command printed NOT FOUND, output this to help diagnose:
+
+```bash
+python3 << 'EOF'
+with open('PATH/TO/FILE', 'r') as f:
+    content = f.read()
+target = '''WHAT_YOU_SEARCHED_FOR'''
+if target in content:
+    idx = content.index(target)
+    print("FOUND. Context:")
+    print(repr(content[max(0, idx-100):idx+len(target)+100]))
+else:
+    print("NOT FOUND. First 600 chars:")
+    print(repr(content[:600]))
+EOF
 ```

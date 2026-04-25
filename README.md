@@ -1,83 +1,71 @@
 # claude-file-edit-skill
 
-A Claude skill for making precise, surgical file edits using the bash tool on **claude.ai web** (computer use environment).
+A Claude skill that makes Claude output ready-to-paste terminal commands for file edits, instead of reprinting your whole file.
 
 ## Why use this?
 
-Without this skill, Claude's default when you say "add an import to this file" is to read the whole file, reprint the entire thing with the change, and write it back. On a 500-line file that's wasteful. On a 2000-line file it's genuinely painful — slow, burns through your message limits, and you have to scroll past a wall of unchanged code.
+Without this skill, when you ask Claude to make a code change on claude.ai, it typically responds by reprinting your entire file with the change buried somewhere inside. You have to scroll through hundreds of lines of unchanged code, manually copy the relevant parts, and paste them back into your editor.
 
-With this skill, Claude does a 10-line heredoc instead. Same result, way less output.
-
-**Concrete benefits:**
-- **Faster responses** — no waiting for Claude to reprint your entire codebase
-- **Uses fewer messages** — big files don't blow up your context/usage limits
-- **Safer** — the `NOT FOUND` guard means Claude never silently fails or corrupts a file
-- **Consistent** — Claude always reaches for the same reliable pattern instead of improvising each time
-- **Debuggable** — when a match fails, `dry_run.py` shows exact whitespace/newlines so Claude can fix it immediately instead of guessing
-
-## Structure
-
-```
-claude-file-edit-skill/
-├── SKILL.md                  ← skill instructions + routing table
-├── scripts/
-│   ├── replace.py            ← replace a string or block
-│   ├── insert_after.py       ← insert after an anchor line
-│   ├── insert_before.py      ← insert before an anchor line
-│   ├── delete_block.py       ← remove a block entirely
-│   ├── replace_nth.py        ← replace only the Nth occurrence
-│   ├── multi_file.py         ← same change across multiple files
-│   ├── dry_run.py            ← verify/inspect before editing
-│   └── append.py             ← append to end of file
-├── README.md
-└── LICENSE
-```
-
-Claude reads `SKILL.md` to decide which script to use, then loads only that script's template — keeping token usage minimal.
-
-## Example
+With this skill, Claude responds with a single copy-paste terminal command:
 
 ```bash
 python3 << 'EOF'
 with open('src/pages/Dashboard.tsx', 'r') as f:
     content = f.read()
-
-old = "import MatchChat from '../components/MatchChat'"
-new = "import MatchChat from '../components/MatchChat'\nimport CompletedButton from '../components/CompletedButton'"
-
+old = '''                      <button
+                        onClick={() => handleCompleteSwap(match, matchIds[i])}
+                        className="mt-3 w-full text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 rounded-xl transition-colors"
+                      >
+                        ✅ I completed my swap in MyUTK
+                      </button>'''
+new = '''                      <CompletedButton
+                        match={match}
+                        matchId={matchIds[i]}
+                        userId={user!.id}
+                        onComplete={handleCompleteSwap}
+                      />'''
 if old in content:
     content = content.replace(old, new)
     print("replaced successfully")
 else:
-    print("NOT FOUND — check spacing/indentation")
-
+    print("NOT FOUND")
 with open('src/pages/Dashboard.tsx', 'w') as f:
     f.write(content)
 EOF
 ```
 
+Paste it in your terminal, hit enter, done. The file is edited. No scrolling, no manual copy-pasting, no risk of accidentally missing a line.
+
+## How it works
+
+The heredoc runs Python inline in your terminal. It opens the file, finds the exact old string, replaces it with the new one, and writes it back. The `NOT FOUND` guard means it never silently fails — if the string doesn't match exactly, it tells you.
+
+## Patterns included
+
+- Replace a string or block
+- Insert after an anchor line (e.g. adding an import)
+- Delete a block
+- Multiple changes to the same file in one command
+- Debug mode when NOT FOUND
+
 ## Environment
 
-**Only works on claude.ai web/desktop with code execution enabled.**
+Works anywhere you have a terminal — the skill just changes what Claude outputs on claude.ai web. No code execution needed inside Claude.
 
-| Works | Doesn't work |
-|-------|-------------|
-| claude.ai web (code execution on) | Claude Code — has native file tools, doesn't need this |
-| claude.ai desktop (computer use) | API without computer use |
+| Works | Doesn't apply |
+|-------|--------------|
+| claude.ai web (free or Pro) | Claude Code — already has native file tools |
+| claude.ai desktop | |
+| Any OS with Python 3 in terminal | |
 
 ## Installation
 
-### claude.ai (web)
-
 1. Download this repo as a ZIP (`Code → Download ZIP` on GitHub)
-2. **Check the ZIP structure** — the skill folder must be at the root, not double-nested. When you unzip it should look like `claude-file-edit-skill/SKILL.md`, not `claude-file-edit-skill/claude-file-edit-skill/SKILL.md`. If it's double-nested, just move the inner folder out before rezipping.
-3. Go to **claude.ai → profile icon → Settings → Features → Skills**
-4. Click **Upload** and select the ZIP
-5. Make sure **Code Execution** is enabled under **Settings → Capabilities**
+2. Go to **claude.ai → profile icon → Settings → Features → Skills**
+3. Click **Upload** and select the ZIP
+4. Check the ZIP isn't double-nested before uploading — it should be `claude-file-edit-skill/SKILL.md` not `claude-file-edit-skill/claude-file-edit-skill/SKILL.md`
 
-Claude will automatically use the skill whenever you ask it to edit files.
-
-
+Claude will now respond to code change requests with a pasteable heredoc instead of reprinting your file.
 
 ## License
 
