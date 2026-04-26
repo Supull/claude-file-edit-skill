@@ -16,7 +16,7 @@ old = '''                      <button
                         onClick={() => handleCompleteSwap(match, matchIds[i])}
                         className="mt-3 w-full text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 rounded-xl transition-colors"
                       >
-                        ✅ I completed my swap in MyUTK
+                        ✅ I completed my swap
                       </button>'''
 new = '''                      <CompletedButton
                         match={match}
