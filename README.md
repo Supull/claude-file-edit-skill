@@ -36,7 +36,11 @@ EOF
 
 Paste it in your terminal, hit enter, done. The file is edited. No scrolling, no manual copy-pasting, no risk of accidentally missing a line.
 
-## Tip: show Claude your file structure first
+## Why heredocs save your token budget
+
+On the free tier every message counts. When Claude reprints a 400-line file just to change 10 lines, it burns through your daily limit fast. A heredoc only contains the lines that actually changed — same result, fraction of the tokens. The bigger your files, the more you save.
+
+## Pro tip: show Claude your file structure first
 
 Before asking for a code change, paste your project structure so Claude knows the exact file paths:
 

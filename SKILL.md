@@ -28,6 +28,14 @@ with open('PATH/TO/FILE', 'w') as f:
 EOF
 ```
 
+## Why this matters
+
+On the free tier every message counts. Reprinting a 400-line file to change 10 lines wastes the majority of the response on unchanged code. A heredoc only contains the lines that actually changed — same result, fraction of the tokens.
+
+## If the user shares their file structure
+
+The user may paste output from `find . -type f | grep -v node_modules | grep -v .git` before asking for a change. Use it to get the exact file path right in the `with open()`. If they don't share it, ask for the path before generating the heredoc.
+
 ## Rules
 
 1. `old` must be the **exact** string from the file — preserve all whitespace, indentation, and newlines
