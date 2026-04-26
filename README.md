@@ -36,6 +36,16 @@ EOF
 
 Paste it in your terminal, hit enter, done. The file is edited. No scrolling, no manual copy-pasting, no risk of accidentally missing a line.
 
+## Tip: show Claude your file structure first
+
+Before asking for a code change, paste your project structure so Claude knows the exact file paths:
+
+```bash
+find . -type f | grep -v node_modules | grep -v .git
+```
+
+Or just paste the relevant part manually. Claude needs the correct path to fill in the `with open()` — if the path is wrong the command will error out.
+
 ## How it works
 
 The heredoc runs Python inline in your terminal. It opens the file, finds the exact old string, replaces it with the new one, and writes it back. The `NOT FOUND` guard means it never silently fails — if the string doesn't match exactly, it tells you.
